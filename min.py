@@ -1,23 +1,33 @@
-import argparse
 import time
 
-import pyautogui
+from pynput.keyboard import Key, Listener
+from pynput.mouse import Button, Controller
 
-parser = argparse.ArgumentParser(
-    prog="Minimal autoclicker",
-    description="Click in one place at an interval",
-)
-parser.add_argument("x", help="X coordinate to click at")
-parser.add_argument("y", help="Y coordinate to click at")
-parser.add_argument("time", help="Interval to click at (ms)")
+print("LMB at next mouse position when Enter pressed")
 
-args = parser.parse_args()
+mouse = Controller()
+coords = None
 
 
-while True:
-    try:
-        pyautogui.click(x=args.x, y=args.y)
-        time.sleep(args.time / 100)
-    except KeyboardInterrupt:
-        print("bye")
-        break
+def press(key):
+    if isinstance(key, Key) and key == Key.enter:
+        print(f"Clicking at {mouse.position}")
+        global coords
+        coords = mouse.position
+        return False
+
+
+with Listener(on_press=press, suppress=True) as l:
+    l.join()
+
+listener = Listener(on_press=lambda x: isinstance(x, Key) and x != Key.esc, suppress=True)
+listener.start()
+
+print("Press Esc again to exit")
+while listener.running:
+    prev = mouse.position
+    mouse.position = coords
+    mouse.click(Button.left)
+    mouse.position = prev
+    time.sleep(1.5)
+
